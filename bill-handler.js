@@ -1,6 +1,8 @@
 var _ = require('lodash');
 var deferred = require('deferred');
 var moment = require('moment');
+var Mustache = require('mustache');
+
 var conn;
 
 var Latch = function(n,cb){
@@ -49,7 +51,7 @@ module.exports = {
 			if(!result)
 				dfd.resolve(result);
 			else
-				distributeBills()
+				distributeBills();
 		})
 		//
 		return dfd.promise;
@@ -57,7 +59,39 @@ module.exports = {
 }
 
 var distributeBills = function(){
+	console.log("distributeBills");
 	//compile a list of bills
+	conn.query(" SELECT "
+	   + "s.name AS sharer, "
+	   + "bt.name as typeName, "
+	   + " b.amount AS total_amount, "
+	   + " b.amount/(SELECT COUNT(*) "
+	   + "  FROM BillSharers2Bills bbs2b "
+	   + "  WHERE bbs2b.billID=b.billID) as share_amount "
+	   + "FROM BillSharers s "
+	   + " LEFT JOIN BillSharers2Bills bs2b ON bs2b.billSharerID=s.billSharerID "
+	   + " LEFT JOIN Bills b on bs2b.billID=b.billID "
+	   + " LEFT JOIN BillStates bs ON bs.billStateID=b.billStateID "
+	   + " LEFT JOIN BillTypes bt ON bt.billTypeID=b.billTypeID "
+	   + "WHERE bs.name='received' ORDER BY sharer", function(err, rows, fields){
+		if(err) console.log(err);
+		var people = [];
+		rows.forEach(function(r){
+			var person;
+			if(!(person = _.find(people,{name:r.sharer})))
+				person = people.push({name:r.sharer, bills:[]});
+			person.bills.push({
+				type: r.typeName,
+				total_amount: r.total_amount,
+				share_amount: r.share_amount
+			});
+		});
+		people.forEach(function(person){
+			fs.writeFileSync(person.name+'.email',
+				Mustache.render(fs.readFileSync('template_email.mustache'),
+					person));
+		});
+	});
 }
 
 var shouldDistribute = function(){
@@ -89,9 +123,6 @@ var shouldDistribute = function(){
 		return dfd.promise;
 }
 
-var distributeBills = function(){
-
-}
 
 //bind
 _.bindAll(module.exports);
