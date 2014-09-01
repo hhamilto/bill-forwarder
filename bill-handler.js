@@ -2,6 +2,8 @@ var _ = require('lodash');
 var deferred = require('deferred');
 var moment = require('moment');
 var Mustache = require('mustache');
+var fs = require('fs');
+sprintf = require('sprintf').sprintf;
 
 var conn;
 
@@ -62,9 +64,10 @@ var distributeBills = function(){
 	console.log("distributeBills");
 	//compile a list of bills
 	conn.query(" SELECT "
-	   + "s.name AS sharer, "
-	   + "bt.name as typeName, "
+	   + " s.name AS sharer, "
+	   + " bt.name as typeName, "
 	   + " b.amount AS total_amount, "
+	   + " b.received, "
 	   + " b.amount/(SELECT COUNT(*) "
 	   + "  FROM BillSharers2Bills bbs2b "
 	   + "  WHERE bbs2b.billID=b.billID) as share_amount "
@@ -79,16 +82,27 @@ var distributeBills = function(){
 		rows.forEach(function(r){
 			var person;
 			if(!(person = _.find(people,{name:r.sharer})))
-				person = people.push({name:r.sharer, bills:[]});
+				people.push({name:r.sharer, bills:[]}),
+				person=people[people.length-1];
 			person.bills.push({
-				type: r.typeName,
-				total_amount: r.total_amount,
-				share_amount: r.share_amount
+				output: sprintf("%-15.15s%s  %7s", 
+				                 r.typeName,
+				                 moment(r.received).format('YYYY-MM-DD'),
+				                 sprintf("$%.2f",r.total_amount)),
+				totalAmount: r.total_amount,
+				shareAmount: r.share_amount
 			});
 		});
 		people.forEach(function(person){
-			fs.writeFileSync(person.name+'.email',
-				Mustache.render(fs.readFileSync('template_email.mustache'),
+			person.numSharers = people.length;
+			person.total = sprintf('Total                      %7s',sprintf("$%.2f",person.bills.reduce(function(p,c){
+				return p+c.totalAmount;
+			},0)));
+			person.shareTotal = sprintf('Your Share:                %7s',sprintf("$%.2f",person.bills.reduce(function(p,c){
+				return p+c.shareAmount
+			},0)));
+			fs.writeFileSync(person.name.replace(' ','_')+'.email',
+				Mustache.render(fs.readFileSync('template_email.mustache').toString(),
 					person));
 		});
 	});

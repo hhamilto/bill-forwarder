@@ -129,6 +129,7 @@ function openInbox(cb) {
 var parseMessages = function(uids){
 	console.log("messageCount: "+ uids.length)
 	msgLatch = Latch(uids.length, function(){
+		conn.query("INSERT INTO EmailChecks (checkTime) VALUES (NOW())");
 		BillHandler.processBills()(function(t){
 			console.log("should distribute: "+t);
 			conn.end();
@@ -184,7 +185,8 @@ var getMail = function(){
 					        .format('MMMM D, YYYY')]] ,function(err,uids){
 					console.log("searchin");
 					if (err) throw err;
-					parseMessages(uids);
+					if(uids.length>0) parseMessages(uids);
+					else conn.end(),imap.end();
 				});
 			});
 		});
