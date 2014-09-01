@@ -7,6 +7,31 @@ var moment = require('moment');
 var MailParser = require("mailparser").MailParser;
 var _ = require('lodash');
 var BillHandler = require('./bill-handler');
+var deferred = require('deferred');
+var crypto = require('crypto');
+var spawn = require('child_process').spawn
+
+/*
+var Latch = function(n,cb){
+	var cb,toReturn = function(){
+		if(!--toReturn.n) cb();
+	};
+	toReturn.n = n;
+	toReturn.setCb = function(newCb){
+		if(toReturn.n == 0)
+			newCb();
+		else
+			cb = newCb;
+	}
+	return toReturn;
+};
+*/
+
+var Latch = function(n,cb){
+	return function(){
+		if(!--n) cb();
+	};
+};
 
 var connections = JSON.parse(fs.readFileSync("connections.json"));
 var matchers = [
@@ -20,30 +45,68 @@ var matchers = [
 		text: [{
 			regex: /SEMCO ENERGY Gas Company/
 		}]
+	},{
+		name:"Water",
+		text: [{
+			regex: /Subject: WATER BILL/
+		}]
 	}
 ];
 
-//return bill objects:
-/*{
-	type:
-	amount:
-	dueDate:
-}
-*/
+
 var parsers = {
 	"Electric" : function(mail){
-		//console.log(mail);
-		return {
+		return deferred({
 			type: 'Electric',
 			amount: /Total Payment Amount: \$(\d+\.\d\d)/.exec(mail.text)[1],
 			received: mail.date
-		};
+		});
 	},
 	"Gas": function(mail){
-
+		return deferred({
+			type: 'Gas',
+			amount: /Balance Due:\s*[\s\S]{1,2}\s*> \$(\d+\.\d\d)/.exec(mail.text)[1],
+			received: mail.date
+		});
+	},
+	"Water": function(mail){
+		var child = spawn('pdftotext', [
+		'/dev/stdin',
+		'-']);
+		//hope thats a pdf.
+		var fileNam = crypto.randomBytes(4).readUInt32LE(0)+'.pdf';
+		fs.writeFile(fileNam, mail.attachments[0].content, function(){
+			// evidently fileNam gets overwritten on each call, so as the first
+			// pdftotext ends, it deletes the file out from under the first pdftotext. 
+			// weirdest thing I've seen todate in node. :(
+			var fileName = fileNam;
+			var child = spawn('pdftotext', [
+				'-layout',
+				'-enc',
+				'UTF-8',
+				fileName,
+				'-']);
+			var output = '';
+			child.stdout.on('data', function(data) {
+				output += data;
+			});
+			child.stderr.on('data', function(data) {
+			});
+			child.on('exit', function(code){
+				if (code !== 0) console.log("pdftotext didn't do so hot.");
+				var obj = {};
+				dfd.resolve({
+					type: 'Water',
+					amount: /TOTAL DUE\s*\$(\d+\.\d\d)/.exec(output)[1],
+					received: mail.date
+				});
+				fs.unlink(fileName);
+			});
+		});
+		var dfd = deferred();
+		return dfd.promise;
 	}
 }
-
 var conn = mysql.createConnection(_.defaults(connections.db,{
 	multipleStatements: true
 }));
@@ -64,36 +127,40 @@ function openInbox(cb) {
 }
 
 var parseMessages = function(uids){
+	console.log("messageCount: "+ uids.length)
+	msgLatch = Latch(uids.length, function(){
+		BillHandler.processBills()(function(t){
+			console.log("should distribute: "+t);
+			conn.end();
+			imap.end();
+		});
+	});
 	var f = imap.fetch(uids, {
-		bodies: [
-			//'HEADER.FIELDS (FROM TO SUBJECT DATE)',
-			''
-		],
+		bodies: [''],
 		struct: true
 	});
 	f.on('message', function(msg, seqno) {
-		console.log('Message #%d', seqno);
-		var prefix = '(#' + seqno + ') ';
 		msg.on('body', function(stream, info) {
 			var mailparser = new MailParser();
 			stream.on('data', mailparser.write.bind(mailparser));
 			stream.once('end', mailparser.end.bind(mailparser))
 			mailparser.on('end',function(message) {
 				var match = matchers.reduce(function(p,c){
-					console.log("Trying to match " + c.name);
 					var bodyMatch = c.text.reduce(function(p,c){
-						console.log(c);
 						if(p)return true;
 						return c.regex.test(message.text);
 					},false);
 					if(bodyMatch) return c.name;
 					return p;
 				},null);
-				console.log("Match: "+ match)
 				if(match){
+				console.log("Match: "+ match)
 					var bill = parsers[match](message);
-					console.log(bill);
-				}
+					BillHandler.addBill(bill)(function(){
+						msgLatch();
+					});
+				}else
+					msgLatch();
 			});
 		});
 	});
@@ -102,8 +169,7 @@ var parseMessages = function(uids){
 	});
 	f.once('end', function() {
 		console.log('Done fetching all messages!');
-		imap.end();
-		conn.end()
+		//imap.end();
 	});
 }
 

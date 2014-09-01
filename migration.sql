@@ -10,7 +10,7 @@ CREATE TABLE EmailChecks (
 );
 
 /*--INSERT INTO EmailChecks (checkTime) VALUES ((NOW() - INTERVAL 5 HOUR));*/
-INSERT INTO EmailChecks (checkTime) VALUES ('2014-08-13 00:00:00');
+INSERT INTO EmailChecks (checkTime) VALUES ('2014-07-08 00:00:00');
 
 CREATE TABLE Emails (
 	emailID Integer NOT NULL AUTO_INCREMENT,
@@ -36,27 +36,32 @@ CREATE TABLE BillStates (
 	PRIMARY KEY (billStateID)
 );
 
-INSERT INTO BillStates (name) VALUES ("Recieved");
-INSERT INTO BillStates (name) VALUES ("Distributed");
-INSERT INTO BillStates (name) VALUES ("Paid");
+INSERT INTO BillStates (name) VALUES ("received");
+INSERT INTO BillStates (name) VALUES ("distributed");
+INSERT INTO BillStates (name) VALUES ("paid");
 
 CREATE TABLE Bills (
 	billID Integer NOT NULL AUTO_INCREMENT,
-	recieved DATE,
-	amount numeric(15,2)
+	received DATE,
+	amount numeric(15,2),
 	billTypeID Integer,
 	billstateID Integer,
 	PRIMARY KEY (billID)
-)
+);
 
 CREATE TABLE BillSharers (
 	billSharerID Integer NOT NULL AUTO_INCREMENT,
 	name Varchar(255),
-	emailID
+	email Varchar(255),
 	PRIMARY KEY (billSharerID)
 );
+INSERT INTO BillSharers (name,email) VALUES ("Rui Hui", "rui@yo");
+INSERT INTO BillSharers (name,email) VALUES ("Khang", "Khang@yo");
+INSERT INTO BillSharers (name,email) VALUES ("Felipe", "Felipe@yo");
+INSERT INTO BillSharers (name,email) VALUES ("Hurricane", "hurricane@tempesthostingservices.com");
+
 
 CREATE TABLE BillSharers2Bills (
 	billSharerID Integer NOT NULL,
 	billID Integer NOT NULL
-)
+);
