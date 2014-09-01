@@ -1,0 +1,15 @@
+Dear {{billSharer}},
+
+These bills are due as a house:
+
+             Received     Amount
+{{#bills}}
+{{type}}  {{received}}   ${{amount}}
+{{/bills}}
+________________________________
+total:                  ${{total}}
+Your Share:             ${{shareTotal}}
+
+The bills were split {{numShareres}} ways.
+
+Pay via paypal to hhamilto@mtu.edu
