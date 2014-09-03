@@ -1,0 +1,29 @@
+{
+  "name": "hurricane-bill-collector",
+  "description": "Emails and sends utility notifications to roomates",
+  "version": "0.0.1",
+  "author": {
+    "name": "Hurricane Hamilton",
+    "email": "hhamilto@mtu.edu"
+  },
+  "main": "./main.js",
+  "engines": {
+    "node": ">=0.10.25"
+  },
+  "dependencies": {
+		"imap":"",
+		"mysql":"",
+		"optimist":"",
+		"moment":"",
+		"mailparser":"",
+		"lodash":"",
+		"deferred":"",
+		"moment":"",
+		"mustache":"",
+		"sprintf":"",
+		"nodemailer":""
+   },
+  "scripts":{
+    "start": "node main"
+  }
+}
