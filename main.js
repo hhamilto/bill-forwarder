@@ -81,8 +81,10 @@ var parsers = {
 			child.stderr.on('data', function(data) {
 				stderr += data;
 			});
-			child.on('exit', function(code){
-				if (code !== 0) console.log("pdftotext didn't do so hot.");
+			child.stdout.on('end', function(){
+				//child sometimes exits before streams get data through
+				// hahahah
+				//if (code !== 0) console.log("pdftotext didn't do so hot.");
 				var obj = {};
 				if(/TOTAL DUE\s*\$(\d+\.\d\d)/.exec(output) == null){
 					console.log("DEBUG OUTPUT: "+ output);
@@ -94,7 +96,7 @@ var parsers = {
 					amount: /TOTAL DUE\s*\$(\d+\.\d\d)/.exec(output)[1],
 					received: mail.date
 				});
-				fs.unlink(fileName);
+				//fs.unlink(fileName);
 			});
 		});
 		var dfd = deferred();
