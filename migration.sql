@@ -47,12 +47,13 @@ CREATE TABLE BillSharers (
 	billSharerID Integer NOT NULL AUTO_INCREMENT,
 	name Varchar(255),
 	email Varchar(255),
+	expectPayment boolean,
 	PRIMARY KEY (billSharerID)
 );
-INSERT INTO BillSharers (name,email) VALUES ('Rui Hui', 'hurricane@tempesthostingservices.com');
-INSERT INTO BillSharers (name,email) VALUES ('Khang', 'hurricane@tempesthostingservices.com');
-INSERT INTO BillSharers (name,email) VALUES ('Felipe', 'hurricane@tempesthostingservices.com');
-INSERT INTO BillSharers (name,email) VALUES ('Hurricane', 'hurricane@tempesthostingservices.com');
+INSERT INTO BillSharers (name,email,expectPayment) VALUES ('Rui', 'hurricane@twempesthostingservices.com', true);
+INSERT INTO BillSharers (name,email,expectPayment) VALUES ('Khang', 'hurricane@twempesthostingservices.com', true);
+INSERT INTO BillSharers (name,email,expectPayment) VALUES ('Felipe', 'hurricane@twempesthostingservices.com', false);
+INSERT INTO BillSharers (name,email,expectPayment) VALUES ('Hurricane', 'hurricane@twempesthostingservices.com', false);
 
 
 CREATE TABLE BillSharers2Bills (

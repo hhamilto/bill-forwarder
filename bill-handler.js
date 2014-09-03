@@ -1,11 +1,42 @@
+// this inserts bills into the database 
+// and sends notifications as necessary
 var _ = require('lodash');
 var deferred = require('deferred');
 var moment = require('moment');
 var Mustache = require('mustache');
 var fs = require('fs');
-sprintf = require('sprintf').sprintf;
+var sprintf = require('sprintf').sprintf;
+var nodemailer = require('nodemailer');
+
+var transporter = nodemailer.createTransport({
+	host: 'tempesthostingservices.com',
+	auth: {
+		user: 'hurricane',
+		pass: 'imapassword'
+	},
+	tls: {
+		rejectUnauthorized: false
+	}
+});
 
 var conn;
+//xxx todo: read from file.
+var email_template =
+   'Dear {{name}},\n'
+ + '\n'
+ + 'These bills are due as a house:\n'
+ + '\n'
+ + '                Received    Amount\n'
+ + '{{#bills}}\n'
+ + '{{output}}\n'
+ + '{{/bills}}\n'
+ + '__________________________________\n'
+ + '{{total}}\n'
+ + '{{shareTotal}}\n'
+ + '\n'
+ + 'The bills were split {{numSharers}} ways.\n'
+ + '\n'
+ + 'Please pay via paypal to hhamilto@mtu.edu\n'
 
 var Latch = function(n,cb){
 	return function(){
@@ -53,7 +84,7 @@ module.exports = {
 			if(!result)
 				dfd.resolve(result);
 			else
-				distributeBills();
+				distributeBills()(dfd.resolve);
 		})
 		//
 		return dfd.promise;
@@ -61,10 +92,11 @@ module.exports = {
 }
 
 var distributeBills = function(){
-	console.log("distributeBills");
+	var dfd = deferred();
 	//compile a list of bills
 	conn.query(" SELECT "
 	   + " s.name AS sharer, "
+	   + " s.email AS sharer_email, "
 	   + " bt.name as typeName, "
 	   + " b.amount AS total_amount, "
 	   + " b.received, "
@@ -82,7 +114,7 @@ var distributeBills = function(){
 		rows.forEach(function(r){
 			var person;
 			if(!(person = _.find(people,{name:r.sharer})))
-				people.push({name:r.sharer, bills:[]}),
+				people.push({name:r.sharer,email:r.sharer_email, bills:[]}),
 				person=people[people.length-1];
 			person.bills.push({
 				output: sprintf("%-15.15s%s  %7s", 
@@ -93,6 +125,9 @@ var distributeBills = function(){
 				shareAmount: r.share_amount
 			});
 		});
+		var maillatch = Latch(people.length, function(){
+			dfd.resolve('success sending emails');
+		});
 		people.forEach(function(person){
 			person.numSharers = people.length;
 			person.total = sprintf('Total                      %7s',sprintf("$%.2f",person.bills.reduce(function(p,c){
@@ -101,12 +136,26 @@ var distributeBills = function(){
 			person.shareTotal = sprintf('Your Share:                %7s',sprintf("$%.2f",person.bills.reduce(function(p,c){
 				return p+c.shareAmount
 			},0)));
-			fs.writeFileSync(person.name.replace(' ','_')+'.email',
-				Mustache.render(fs.readFileSync('template_email.mustache').toString(),
-					person));
+			sendEmail(person)(maillatch);
 		});
 	});
+	return dfd.promise;
 }
+
+var sendEmail = function(person){
+	var dfd = deferred();
+	transporter.sendMail({
+		from: 'Hurricane Hamilton <hurricane@tempesthostingservices.com>', // sender address
+		to: person.email, // list of receivers
+		subject: '907 Ruby Utility Bills', // Subject line
+		text: Mustache.render(email_template,person)
+	}, function(err, info){
+		if(err) console.log(err);
+		else
+			dfd.resolve(info);
+	});
+	return dfd.promise;
+};
 
 var shouldDistribute = function(){
 		var dfd = deferred();

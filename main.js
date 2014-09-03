@@ -1,3 +1,5 @@
+// this mainly does the checking email
+// and parseing of bills from the emails
 var Imap = require('imap'),
 		inspect = require('util').inspect;
 var fs = require("fs");
@@ -10,22 +12,6 @@ var BillHandler = require('./bill-handler');
 var deferred = require('deferred');
 var crypto = require('crypto');
 var spawn = require('child_process').spawn
-
-/*
-var Latch = function(n,cb){
-	var cb,toReturn = function(){
-		if(!--toReturn.n) cb();
-	};
-	toReturn.n = n;
-	toReturn.setCb = function(newCb){
-		if(toReturn.n == 0)
-			newCb();
-		else
-			cb = newCb;
-	}
-	return toReturn;
-};
-*/
 
 var Latch = function(n,cb){
 	return function(){
@@ -131,7 +117,7 @@ var parseMessages = function(uids){
 	msgLatch = Latch(uids.length, function(){
 		conn.query("INSERT INTO EmailChecks (checkTime) VALUES (NOW())");
 		BillHandler.processBills()(function(t){
-			console.log("should distribute: "+t);
+			console.log("Ending run. Result: " + t);
 			conn.end();
 			imap.end();
 		});
