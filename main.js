@@ -61,7 +61,8 @@ var parsers = {
 		'-']);
 		//hope thats a pdf.
 		var fileNam = crypto.randomBytes(4).readUInt32LE(0)+'.pdf';
-		fs.writeFile(fileNam, mail.attachments[0].content, function(){
+		fs.writeFile(fileNam, mail.attachments[0].content, function(err){
+			if(err) throw err
 			// evidently fileNam gets overwritten on each call, so as the first
 			// pdftotext ends, it deletes the file out from under the first pdftotext. 
 			// weirdest thing I've seen todate in node. :(
@@ -73,14 +74,21 @@ var parsers = {
 				fileName,
 				'-']);
 			var output = '';
+			var stderr = '';
 			child.stdout.on('data', function(data) {
 				output += data;
 			});
 			child.stderr.on('data', function(data) {
+				stderr += data;
 			});
 			child.on('exit', function(code){
 				if (code !== 0) console.log("pdftotext didn't do so hot.");
 				var obj = {};
+				if(/TOTAL DUE\s*\$(\d+\.\d\d)/.exec(output) == null){
+					console.log("DEBUG OUTPUT: "+ output);
+					console.log("DEBUG STDERR: "+ stderr);
+				}
+
 				dfd.resolve({
 					type: 'Water',
 					amount: /TOTAL DUE\s*\$(\d+\.\d\d)/.exec(output)[1],

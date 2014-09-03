@@ -144,6 +144,9 @@ var distributeBills = function(){
 
 var sendEmail = function(person){
 	var dfd = deferred();
+	transporter.sendMail = function(o,cb){
+		cb();
+	};
 	transporter.sendMail({
 		from: 'Hurricane Hamilton <hurricane@tempesthostingservices.com>', // sender address
 		to: person.email, // list of receivers
