@@ -1,5 +1,5 @@
 #! /bin/bash
 
-npm install
+echo "imma installer"
 
 #installs main to crontab (or it will)

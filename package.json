@@ -24,6 +24,8 @@
 		"nodemailer":""
    },
   "scripts":{
-    "start": "node main"
+    "start": "node main",
+		"install": "./install.sh",
+		"preuninstall": "./uninstall.sh"
   }
 }
