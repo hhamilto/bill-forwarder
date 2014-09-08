@@ -56,7 +56,16 @@ INSERT INTO BillSharers (name,email,expectPayment) VALUES ('Felipe', 'hurricane@
 INSERT INTO BillSharers (name,email,expectPayment) VALUES ('Hurricane', 'hurricane@twempesthostingservices.com', false);
 
 
-CREATE TABLE BillSharers2Bills (
+CREATE TABLE BillShares (
+	billShareID Integer NOT NULL AUTO_INCREMENT,
 	billSharerID Integer NOT NULL,
-	billID Integer NOT NULL
+	billID Integer NOT NULL,
+	PRIMARY KEY (billShareID)
 );
+
+CREATE TABLE PaypalExpectations (
+	paypalExpectationID Integer NOT NULL AUTO_INCREMENT,
+	billShareID Integer,
+	recieved boolean,
+	PRIMARY KEY (paypalExpectationID)
+)

@@ -65,7 +65,7 @@ module.exports = {
 						dfd.resolve(true);
 					})
 					rows.forEach(function(r){
-						conn.query("INSERT INTO BillSharers2Bills (billID, billSharerID) VALUES ("+
+						conn.query("INSERT INTO BillShares (billID, billSharerID) VALUES ("+
 							result.insertId+", "+
 							r.billSharerID+")"
 							,function(err, result){
@@ -101,10 +101,10 @@ var distributeBills = function(){
 	   + " b.amount AS total_amount, "
 	   + " b.received, "
 	   + " b.amount/(SELECT COUNT(*) "
-	   + "  FROM BillSharers2Bills bbs2b "
+	   + "  FROM BillShares bbs2b "
 	   + "  WHERE bbs2b.billID=b.billID) as share_amount "
 	   + "FROM BillSharers s "
-	   + " LEFT JOIN BillSharers2Bills bs2b ON bs2b.billSharerID=s.billSharerID "
+	   + " LEFT JOIN BillShares bs2b ON bs2b.billSharerID=s.billSharerID "
 	   + " LEFT JOIN Bills b on bs2b.billID=b.billID "
 	   + " LEFT JOIN BillStates bs ON bs.billStateID=b.billStateID "
 	   + " LEFT JOIN BillTypes bt ON bt.billTypeID=b.billTypeID "
