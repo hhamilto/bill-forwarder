@@ -12,6 +12,7 @@ var BillHandler = require('./bill-handler');
 var deferred = require('deferred');
 var crypto = require('crypto');
 var spawn = require('child_process').spawn
+var PayPalHandler = require('./paypal-handler');
 
 var Latch = function(n,cb){
 	return function(){
@@ -84,7 +85,6 @@ var parsers = {
 			child.stdout.on('end', function(){
 				//child sometimes exits before streams get data through
 				// hahahah
-				//if (code !== 0) console.log("pdftotext didn't do so hot.");
 				var obj = {};
 				if(/TOTAL DUE\s*\$(\d+\.\d\d)/.exec(output) == null){
 					console.log("DEBUG OUTPUT: "+ output);
@@ -96,7 +96,7 @@ var parsers = {
 					amount: /TOTAL DUE\s*\$(\d+\.\d\d)/.exec(output)[1],
 					received: mail.date
 				});
-				//fs.unlink(fileName);
+				fs.unlink(fileName);
 			});
 		});
 		var dfd = deferred();
@@ -182,20 +182,22 @@ var getMail = function(){
 					console.log("searchin");
 					if (err) throw err;
 					if(uids.length>0) parseMessages(uids);
-					else conn.end(),imap.end();
+					else conn.end(),imap.end(),console.log("Found no new messages");
 				});
 			});
 		});
 	});
 }
+var proceed = function(){
+	PayPalHandler.checkPaypal();
+	getMail();
+};
 
 if(argv["cleardb"]){
 	console.log("clearin db");
-	conn.query(String(fs.readFileSync("migration.sql")), function(){
-		getMail();
-	});
+	conn.query(String(fs.readFileSync("migration.sql")), proceed);
 }else{
-	getMail();
+	proceed();
 }
 
 
@@ -206,9 +208,6 @@ imap.once('error', function(err) {
 imap.once('end', function() {
 	console.log('Connection ended');
 });
-
-
-
 imap.connect();
 
 
