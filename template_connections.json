@@ -1,0 +1,17 @@
+{
+	"email":{
+		"user":     "john",
+		"password": "password",
+		"host":     "example.com"
+	},
+	"db":{
+		"user":     "john",
+		"password": "123456",
+		"host":     "localhost",
+		"database": "billForwardingDatabase"
+	},
+	"paypal":{
+		"client_id" : "client id (should be long base64 string)",
+		"secret" :    "client secret (should be long base64 string)"
+	}
+}
